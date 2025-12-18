@@ -14,7 +14,9 @@
 			"action": "index.htm",
 			"accept": {
 				"text/plain": [
-					".txt",
+					".txt"
+				],
+				"text/markdown": [
 					".md"
 				]
 			}
