@@ -377,6 +377,8 @@
 				console.error(err);
 			}
 
+			document.title = file.name;
+
 			spinner.style.display = 'none';
 			if (!contentDiv.innerHTML) {
 				emptyState.style.display = 'flex';
