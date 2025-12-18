@@ -318,94 +318,91 @@
 	</div>
 
 	<script>
-		document.addEventListener('DOMContentLoaded', () => {
-			const body = document.body;
-			const emptyState = document.getElementById('empty-state');
-			const contentDiv = document.getElementById('content');
-			const errorMsg = document.getElementById('error-msg');
-			const spinner = document.getElementById('spinner');
+		const body = document.body;
+		const emptyState = document.getElementById('empty-state');
+		const contentDiv = document.getElementById('content');
+		const errorMsg = document.getElementById('error-msg');
+		const spinner = document.getElementById('spinner');
 
-			// --- Drag and Drop Handlers ---
-			body.addEventListener('dragenter', highlight);
-			body.addEventListener('dragover', highlight);
+		// --- Drag and Drop Handlers ---
+		body.addEventListener('dragenter', highlight);
+		body.addEventListener('dragover', highlight);
 
-			body.addEventListener('dragleave', unhighlight);
-			body.addEventListener('drop', unhighlight);
+		body.addEventListener('dragleave', unhighlight);
+		body.addEventListener('drop', unhighlight);
 
-			body.addEventListener('drop', handleDrop);
+		body.addEventListener('drop', handleDrop);
 
-			function highlight(e) {
-				body.classList.add('dragging');
-				e.preventDefault();
-				e.stopPropagation();
+		function highlight(e) {
+			body.classList.add('dragging');
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		function unhighlight(e) {
+			body.classList.remove('dragging');
+			e.preventDefault();
+			e.stopPropagation();
+		}
+		function handleDrop(e) {
+			for (const file of e.dataTransfer.files) {
+				handleFile(file);
+				return; // only one
 			}
-			function unhighlight(e) {
-				body.classList.remove('dragging');
-				e.preventDefault();
-				e.stopPropagation();
-			}
-			function handleDrop(e) {
-				const files = e.dataTransfer.files;
+		}
 
-				if (files.length > 0) {
-					handleFile(files[0]);
-				}
-			}
+		async function handleFile(file) {
+			// Reset UI
+			errorMsg.style.display = 'none';
+			errorMsg.textContent = '';
 
-			async function handleFile(file) {
-				// Reset UI
-				errorMsg.style.display = 'none';
-				errorMsg.textContent = '';
-
-				// Validate file type (basic check)
-				// We allow .md, .markdown, .txt, or empty type (sometimes happens with code files)
-				if (!file.name.match(/\.(md|markdown|txt)$/i) && file.type && !file.type.match('text.*')) {
-					showError(`"${file.name}" doesn't look like a markdown file.`);
-					return;
-				}
-
-				// Show loading
-				emptyState.style.display = 'none';
-				contentDiv.classList.remove('active');
-				spinner.style.display = 'block';
-
-				try {
-					const markdownText = await file.text();
-					renderMarkdown(markdownText);
-				} catch (err) {
-					showError("Error reading file content.");
-					console.error(err);
-				}
-
-				spinner.style.display = 'none';
-				if (!contentDiv.innerHTML) {
-					emptyState.style.display = 'flex';
-				}
+			// Validate file type (basic check)
+			// We allow .md, .markdown, .txt, or empty type (sometimes happens with code files)
+			if (!file.name.match(/\.(md|markdown|txt)$/i) && file.type && !file.type.match('text.*')) {
+				showError(`"${file.name}" doesn't look like a markdown file.`);
+				return;
 			}
 
-			function renderMarkdown(text) {
-				const reader = new commonmark.Parser();
-				const writer = new commonmark.HtmlRenderer();
+			// Show loading
+			emptyState.style.display = 'none';
+			contentDiv.classList.remove('active');
+			spinner.style.display = 'block';
 
-				const parsed = reader.parse(text);
-				const result = writer.render(parsed);
-
-				// Update DOM
-				contentDiv.innerHTML = result;
-
-				// Show content
-				spinner.style.display = 'none';
-				contentDiv.classList.add('active');
-
-				// Scroll to top
-				window.scrollTo(0, 0);
+			try {
+				const markdownText = await file.text();
+				renderMarkdown(markdownText);
+			} catch (err) {
+				showError("Error reading file content.");
+				console.error(err);
 			}
 
-			function showError(msg) {
-				errorMsg.textContent = msg;
-				errorMsg.style.display = 'block';
+			spinner.style.display = 'none';
+			if (!contentDiv.innerHTML) {
+				emptyState.style.display = 'flex';
 			}
-		});
+		}
+
+		function renderMarkdown(text) {
+			const reader = new commonmark.Parser();
+			const writer = new commonmark.HtmlRenderer();
+
+			const parsed = reader.parse(text);
+			const result = writer.render(parsed);
+
+			// Update DOM
+			contentDiv.innerHTML = result;
+
+			// Show content
+			spinner.style.display = 'none';
+			contentDiv.classList.add('active');
+
+			// Scroll to top
+			window.scrollTo(0, 0);
+		}
+
+		function showError(msg) {
+			errorMsg.textContent = msg;
+			errorMsg.style.display = 'block';
+		}
 	</script>
 </body>
 
