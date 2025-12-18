@@ -1,0 +1,23 @@
+{
+	"name": "Line Counter",
+	"start_url": "index.htm",
+	"display": "standalone",
+	"icons": [
+		{
+			"src": "icon.png",
+			"sizes": "any",
+			"purpose": "maskable any"
+		}
+	],
+	"file_handlers": [
+		{
+			"action": "index.htm",
+			"accept": {
+				"text/plain": [
+					".txt",
+					".md"
+				]
+			}
+		}
+	]
+}

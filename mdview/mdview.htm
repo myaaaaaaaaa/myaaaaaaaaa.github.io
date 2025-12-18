@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Minimalist Markdown Viewer</title>
+	<!--
+		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+	-->
+	<script src="https://unpkg.com/commonmark@0.31.2/dist/commonmark.min.js" crossorigin="anonymous"
+		integrity="sha256-LeD47LygpkcNpXyLKtBDd3rpmcUTL5q/EujDMtTkYWQ="></script>
+	<style>
+		:root {
+			--bg-color: #ffffff;
+			--text-color: #333333;
+			--accent-color: #0066cc;
+			--code-bg: #f4f4f4;
+			--border-color: #e0e0e0;
+			--font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+			--font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+		}
+
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			margin: 0;
+			padding: 0;
+			font-family: var(--font-main);
+			background-color: var(--bg-color);
+			color: var(--text-color);
+			line-height: 1.6;
+			min-height: 100vh;
+			display: flex;
+			flex-direction: column;
+			transition: background-color 0.3s ease;
+		}
+
+		/* Drag Overlay Styling */
+		body.dragging {
+			background-color: #f0f7ff;
+		}
+
+		body.dragging::after {
+			content: 'Drop file to render';
+			position: fixed;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			font-size: 2rem;
+			font-weight: bold;
+			color: var(--accent-color);
+			z-index: 10;
+			pointer-events: none;
+		}
+
+		/* Container */
+		#container {
+			max-width: 800px;
+			margin: 0 auto;
+			padding: 4rem 2rem;
+			width: 100%;
+			flex-grow: 1;
+		}
+
+		/* Empty State */
+		#empty-state {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			height: 60vh;
+			text-align: center;
+			border: 2px dashed var(--border-color);
+			border-radius: 12px;
+			margin-top: 2rem;
+			color: #888;
+			transition: border-color 0.3s;
+		}
+
+		#empty-state:hover {
+			border-color: var(--accent-color);
+			color: var(--accent-color);
+			cursor: default;
+		}
+
+		#empty-state h1 {
+			font-size: 1.5rem;
+			margin-bottom: 0.5rem;
+			color: inherit;
+		}
+
+		#empty-state p {
+			margin: 0;
+			font-size: 1rem;
+		}
+
+		/* Rendered Content Styling */
+		#content {
+			display: none;
+		}
+
+		#content.active {
+			display: block;
+			animation: fadeIn 0.5s ease;
+		}
+
+		@keyframes fadeIn {
+			from {
+				opacity: 0;
+				transform: translateY(10px);
+			}
+
+			to {
+				opacity: 1;
+				transform: translateY(0);
+			}
+		}
+
+		/* Markdown Elements */
+		h1,
+		h2,
+		h3,
+		h4,
+		h5,
+		h6 {
+			margin-top: 2rem;
+			margin-bottom: 1rem;
+			line-height: 1.3;
+			color: #111;
+		}
+
+		h1 {
+			font-size: 2.25rem;
+			border-bottom: 1px solid var(--border-color);
+			padding-bottom: 0.3em;
+		}
+
+		h2 {
+			font-size: 1.75rem;
+			border-bottom: 1px solid var(--border-color);
+			padding-bottom: 0.3em;
+		}
+
+		h3 {
+			font-size: 1.5rem;
+		}
+
+		h4 {
+			font-size: 1.25rem;
+		}
+
+		p {
+			margin-bottom: 1.25rem;
+		}
+
+		a {
+			color: var(--accent-color);
+			text-decoration: none;
+		}
+
+		a:hover {
+			text-decoration: underline;
+		}
+
+		code {
+			font-family: var(--font-mono);
+			background-color: var(--code-bg);
+			padding: 0.2em 0.4em;
+			border-radius: 3px;
+			font-size: 0.9em;
+		}
+
+		pre {
+			background-color: var(--code-bg);
+			padding: 1rem;
+			overflow-x: auto;
+			border-radius: 6px;
+			margin-bottom: 1.5rem;
+		}
+
+		pre code {
+			background-color: transparent;
+			padding: 0;
+			font-size: 0.9em;
+			color: #24292e;
+		}
+
+		blockquote {
+			margin: 0 0 1.5rem 0;
+			padding-left: 1rem;
+			border-left: 4px solid var(--border-color);
+			color: #666;
+			font-style: italic;
+		}
+
+		ul,
+		ol {
+			margin-bottom: 1.5rem;
+			padding-left: 2rem;
+		}
+
+		li {
+			margin-bottom: 0.5rem;
+		}
+
+		img {
+			max-width: 100%;
+			height: auto;
+			border-radius: 6px;
+			display: block;
+			margin: 1.5rem auto;
+		}
+
+		hr {
+			border: 0;
+			height: 1px;
+			background: var(--border-color);
+			margin: 2rem 0;
+		}
+
+		table {
+			border-collapse: collapse;
+			width: 100%;
+			margin-bottom: 1.5rem;
+			display: block;
+			overflow-x: auto;
+		}
+
+		th,
+		td {
+			border: 1px solid var(--border-color);
+			padding: 0.75rem;
+			text-align: left;
+		}
+
+		th {
+			background-color: #f8f8f8;
+			font-weight: 600;
+		}
+
+		/* Loading Spinner */
+		.spinner {
+			display: none;
+			width: 40px;
+			height: 40px;
+			border: 4px solid #f3f3f3;
+			border-top: 4px solid var(--accent-color);
+			border-radius: 50%;
+			animation: spin 1s linear infinite;
+			margin: 2rem auto;
+		}
+
+		@keyframes spin {
+			0% {
+				transform: rotate(0deg);
+			}
+
+			100% {
+				transform: rotate(360deg);
+			}
+		}
+
+		/* Error Message */
+		#error-msg {
+			color: #d32f2f;
+			background-color: #ffebee;
+			padding: 1rem;
+			border-radius: 6px;
+			margin-bottom: 1rem;
+			display: none;
+			text-align: center;
+		}
+
+		/* Footer */
+		.footer-note {
+			text-align: center;
+			font-size: 0.8rem;
+			color: #aaa;
+			margin-top: auto;
+			padding: 2rem 0;
+		}
+
+		/* Mobile Adjustments */
+		@media (max-width: 600px) {
+			#container {
+				padding: 2rem 1rem;
+			}
+
+			h1 {
+				font-size: 1.75rem;
+			}
+
+			h2 {
+				font-size: 1.5rem;
+			}
+		}
+	</style>
+</head>
+
+<body>
+
+	<div id="container">
+		<div id="error-msg"></div>
+
+		<div id="empty-state">
+			<h1>Drag & Drop Markdown</h1>
+			<p>Drop a .md file anywhere to render it.</p>
+		</div>
+
+		<div class="spinner" id="spinner"></div>
+		<div id="content"></div>
+		<div class="footer-note">
+			Powered by CommonMark.js
+		</div>
+	</div>
+
+	<script>
+		document.addEventListener('DOMContentLoaded', () => {
+			const body = document.body;
+			const emptyState = document.getElementById('empty-state');
+			const contentDiv = document.getElementById('content');
+			const errorMsg = document.getElementById('error-msg');
+			const spinner = document.getElementById('spinner');
+
+			// --- Drag and Drop Handlers ---
+			body.addEventListener('dragenter', highlight);
+			body.addEventListener('dragover', highlight);
+
+			body.addEventListener('dragleave', unhighlight);
+			body.addEventListener('drop', unhighlight);
+
+			body.addEventListener('drop', handleDrop);
+
+			function highlight(e) {
+				body.classList.add('dragging');
+				e.preventDefault();
+				e.stopPropagation();
+			}
+			function unhighlight(e) {
+				body.classList.remove('dragging');
+				e.preventDefault();
+				e.stopPropagation();
+			}
+			function handleDrop(e) {
+				const files = e.dataTransfer.files;
+
+				if (files.length > 0) {
+					handleFile(files[0]);
+				}
+			}
+
+			async function handleFile(file) {
+				// Reset UI
+				errorMsg.style.display = 'none';
+				errorMsg.textContent = '';
+
+				// Validate file type (basic check)
+				// We allow .md, .markdown, .txt, or empty type (sometimes happens with code files)
+				if (!file.name.match(/\.(md|markdown|txt)$/i) && file.type && !file.type.match('text.*')) {
+					showError(`"${file.name}" doesn't look like a markdown file.`);
+					return;
+				}
+
+				// Show loading
+				emptyState.style.display = 'none';
+				contentDiv.classList.remove('active');
+				spinner.style.display = 'block';
+
+				try {
+					const markdownText = await file.text();
+					renderMarkdown(markdownText);
+				} catch (err) {
+					showError("Error reading file content.");
+					console.error(err);
+				}
+
+				spinner.style.display = 'none';
+				if (!contentDiv.innerHTML) {
+					emptyState.style.display = 'flex';
+				}
+			}
+
+			function renderMarkdown(text) {
+				const reader = new commonmark.Parser();
+				const writer = new commonmark.HtmlRenderer();
+
+				const parsed = reader.parse(text);
+				const result = writer.render(parsed);
+
+				// Update DOM
+				contentDiv.innerHTML = result;
+
+				// Show content
+				spinner.style.display = 'none';
+				contentDiv.classList.add('active');
+
+				// Scroll to top
+				window.scrollTo(0, 0);
+			}
+
+			function showError(msg) {
+				errorMsg.textContent = msg;
+				errorMsg.style.display = 'block';
+			}
+		});
+	</script>
+</body>
+
+</html>

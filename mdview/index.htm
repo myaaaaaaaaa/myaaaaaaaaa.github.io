@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<title>Line Counter</title>
+	<link rel="manifest" href="manifest.json">
+</head>
+
+<body>
+	<h1>File Line Counter</h1>
+	<ul id="output"></ul>
+	<script>
+		if ('serviceWorker' in navigator) {
+			navigator.serviceWorker.register('../sw.js');
+		}
+
+		if ('launchQueue' in window) {
+			window.launchQueue.setConsumer(async (launchParams) => {
+				const output = document.getElementById('output');
+
+				// Iterate over dropped/opened files
+				for (const fileHandle of launchParams.files) {
+					const file = await fileHandle.getFile();
+					const text = await file.text();
+					const lineCount = text.split(/\r\n|\r|\n/).length;
+
+					// Display result
+					const li = document.createElement('li');
+					li.textContent = `${file.name}: ${lineCount} lines`;
+					output.appendChild(li);
+				}
+			});
+		}
+	</script>
+</body>
+
+</html>
